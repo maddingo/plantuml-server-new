@@ -12,6 +12,10 @@
     <artifactId>plantuml-docker</artifactId>
     <packaging>pom</packaging>
 
+    <properties>
+        <maven.deploy.skip>false</maven.deploy.skip>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>no.maddin.plantuml</groupId>

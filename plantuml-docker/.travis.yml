@@ -1,14 +1,24 @@
+dist: bionic
+
 language: java
 
 jdk:
   - openjdk11
 
-
 services:
   - docker
 
-before_install:
-  - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+stages:
+  - build
+  - name: deploy
+    if: (branch = master) AND (type != pull_request)
 
-script:
-  - mvn clean deploy -Ddockerfile.webcontext=pu
+jobs:
+  include:
+    - stage: build
+      script: mvn --batch-mode --define java.net.useSystemProxies=true verify
+
+    - stage: deploy
+      script:
+        - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+        - mvn clean deploy -Ddockerfile.repository=$PLANTUML_DOCKER_REPOSITORY
