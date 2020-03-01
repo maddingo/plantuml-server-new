@@ -10,16 +10,15 @@ services:
 
 stages:
   - build
-    if: (tag IS blank)
   - name: deploy
     if: (tag IS present) AND (branch = master) AND (type != pull_request)
 
 jobs:
   include:
     - stage: build
-      script: mvn --batch-mode --define java.net.useSystemProxies=true verify
+      script: mvn --batch-mode --define java.net.useSystemProxies=true clean verify
 
     - stage: deploy
       script:
         - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-        - mvn clean deploy -Ddockerfile.repository=$PLANTUML_DOCKER_REPOSITORY
+        - mvn deploy -Ddockerfile.repository=$PLANTUML_DOCKER_REPOSITORY
