@@ -10,8 +10,9 @@ services:
 
 stages:
   - build
+    if: (tag IS NOT present)
   - name: deploy
-    if: (branch = master) AND (type != pull_request)
+    if: (tag IS present) AND (branch = master) AND (type != pull_request)
 
 jobs:
   include:
