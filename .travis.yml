@@ -20,7 +20,7 @@ stages:
 jobs:
   include:
     - stage: build
-      script: mvn --batch-mode --define java.net.useSystemProxies=true clean verify
+      script: mvn -B -Djava.net.useSystemProxies=true clean verify
 
     - stage: deploy
       script:
