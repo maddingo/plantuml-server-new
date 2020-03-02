@@ -3,12 +3,7 @@
 
 <c:set var="cfg" value="${applicationScope['cfg']}" />
 <c:set var="contextroot" value="${pageContext.request.contextPath}" />
-<c:if test="${(pageContext.request.scheme == 'http' && pageContext.request.serverPort != 80) ||
-        (pageContext.request.scheme == 'https' && pageContext.request.serverPort != 443) }">
-    <c:set var="port" value=":${pageContext.request.serverPort}" />
-</c:if>
-<c:set var="scheme" value="${(not empty header['x-forwarded-proto']) ? header['x-forwarded-proto'] : pageContext.request.scheme}" />
-<c:set var="hostpath" value="${scheme}://${pageContext.request.serverName}${port}${contextroot}" />
+<c:set var="hostpath" value="${applicationScope.appurl}" />
 <c:if test="${!empty encoded}">
     <c:set var="imgurl" value="${hostpath}/png/${encoded}" />
     <c:set var="svgurl" value="${hostpath}/svg/${encoded}" />
@@ -51,7 +46,7 @@
     <c:if test="${cfg['SHOW_GITHUB_RIBBON'] eq 'on' }">
         <%@ include file="resource/githubribbon.html" %>
     </c:if>
-    <p>Create your <a href="http://plantuml.com">PlantUML</a> diagrams directly in your browser !</p>
+    <p>Create your <a href="https://plantuml.com">PlantUML</a> diagrams directly in your browser !</p>
 </div>
 <div id="content">
     <%-- CONTENT --%>

@@ -31,6 +31,7 @@ import net.sourceforge.plantuml.png.MetadataTag;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.servlet.RequestDispatcher;
+import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
@@ -39,6 +40,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -71,6 +73,7 @@ public class PlantUmlServlet extends HttpServlet {
 
     @Override
     public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+        updateAppUrl(request);
         request.setCharacterEncoding("UTF-8");
         String text = request.getParameter("text");
 
@@ -108,6 +111,15 @@ public class PlantUmlServlet extends HttpServlet {
         final RequestDispatcher dispatcher = request.getRequestDispatcher("/index.jsp");
         dispatcher.forward(request, response);
 
+    }
+
+    private void updateAppUrl(HttpServletRequest request) throws MalformedURLException {
+        String schema = request.getHeader("x-forwarded-proto") != null ? request.getHeader("x-forwarded-proto") : request.getScheme();
+        String host = request.getServerName();
+        int port = request.getHeader("x-forwarded-port") != null ? Integer.parseInt(request.getHeader("x-forwarded-port")) : request.getServerPort();
+        String context = request.getServletContext().getContextPath();
+        URL appUrl = new URL(schema, host, port, context);
+        getServletContext().setAttribute("appurl", appUrl.toString());
     }
 
     @Override
