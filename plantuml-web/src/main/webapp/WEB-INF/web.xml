@@ -5,7 +5,20 @@
          version="3.0">
   <display-name>Plantuml Server</display-name>
 
+  <context-param>
+    <param-name>org.eclipse.jetty.servlet.Default.welcomeServlets</param-name>
+    <param-value>exact</param-value>
+  </context-param>
+
+  <error-page>
+    <exception-type>java.lang.Throwable</exception-type>
+    <location>/error.jsp</location>
+  </error-page>
+  <error-page>
+    <error-code>500</error-code>
+    <location>/error.jsp</location>
+  </error-page>
   <welcome-file-list>
-    <welcome-file>index.jsp</welcome-file>
+    <welcome-file>welcome</welcome-file>
   </welcome-file-list>
 </web-app>
