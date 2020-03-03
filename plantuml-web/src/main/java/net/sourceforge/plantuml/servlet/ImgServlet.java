@@ -21,35 +21,23 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
  * USA.
  */
-package net.sourceforge.plantuml;
+package net.sourceforge.plantuml.servlet;
 
-import net.sourceforge.plantuml.syntax.LanguageDescriptor;
+import net.sourceforge.plantuml.FileFormat;
 
-import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.io.PrintStream;
 
 /**
- * Servlet used to inspect the language keywords of the running PlantUML server.
- * Same as {@code java -jar plantuml.jar -language}
+ * Image servlet of the webapp.
+ * This servlet produces the UML diagram in PNG format.
  */
-@WebServlet(urlPatterns = {"/language"})
-public class LanguageServlet extends HttpServlet {
+@SuppressWarnings("serial")
+@WebServlet(urlPatterns = {"/png/*"})
+public class ImgServlet extends UmlDiagramService {
 
     @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException {
-        throw new ServletException(new UnsupportedOperationException("The Language servlet only handles GET requests"));
+    public FileFormat getOutputFormat() {
+        return FileFormat.PNG;
     }
 
-    @Override
-    public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        try (final PrintStream ps = new PrintStream(response.getOutputStream())) {
-            response.setContentType("text/text");
-            new LanguageDescriptor().print(ps);
-        }
-    }
 }
