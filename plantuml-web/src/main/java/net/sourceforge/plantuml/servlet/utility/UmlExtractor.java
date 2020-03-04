@@ -48,7 +48,7 @@ public class UmlExtractor {
      *            the last part of the URI containing the compressed UML
      * @return the textual UML source
      */
-    static public String getUmlSource(String source) {
+    public static String getUmlSource(String source) {
 
         // build the UML source from the compressed part of the URL
         String text;
