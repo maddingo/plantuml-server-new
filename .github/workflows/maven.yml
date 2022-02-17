@@ -35,4 +35,8 @@ jobs:
           distribution: 'temurin'
           cache: maven
       - name: Deploy
-        run: mvn -B clean deploy -Ddockerfile.username=${{ secrets.DOCKERHUB_USERNAME }} -Ddockerfile.password=${{ secrets.DOCKERHUB_PASSWORD }} -Ddockerfile.repository=maddingo/plantuml-new
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+          DOCKERHUB_REPO: ${{ secrets.DOCKERHUB_REPO }}
+        run: mvn -B clean deploy -Ddockerfile.username=${DOCKERHUB_USERNAME} -Ddockerfile.password=${DOCKERHUB_PASSWORD} -Ddockerfile.repository=${DOCKERHUB_REPO}
