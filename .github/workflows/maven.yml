@@ -34,9 +34,10 @@ jobs:
           java-version: '11'
           distribution: 'temurin'
           cache: maven
+      - name: Log in to Docker Hub
+        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
       - name: Deploy
-        env:
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-          DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
-          DOCKERHUB_REPO: ${{ secrets.DOCKERHUB_REPO }}
-        run: mvn -B clean deploy -Ddockerfile.username=${DOCKERHUB_USERNAME} -Ddockerfile.password=${DOCKERHUB_PASSWORD} -Ddockerfile.repository=${DOCKERHUB_REPO}
+        run: mvn -B clean deploy
