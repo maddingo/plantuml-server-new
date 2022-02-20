@@ -26,9 +26,9 @@
     <packaging>pom</packaging>
 
     <scm>
-        <connection>https://github.com/maddingo/plantuml-server-new.git</connection>
         <url>https://github.com/maddingo/plantuml-server-new</url>
-        <developerConnection>git@github.com:maddingo/plantuml-server-new.git</developerConnection>
+        <connection>scm:git:https://github.com/maddingo/plantuml-server-new.git</connection>
+        <developerConnection>scm:git:git@github.com:maddingo/plantuml-server-new.git</developerConnection>
     </scm>
 
     <build>
