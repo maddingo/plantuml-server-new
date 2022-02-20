@@ -18,13 +18,18 @@
         <dockerfile.webcontext>ROOT</dockerfile.webcontext>
         <plantuml.version>1.2022.1</plantuml.version>
         <maven.deploy.skip>true</maven.deploy.skip>
-        <spring-boot.build-image.imageName>maddingo/plantuml:${project.version}</spring-boot.build-image.imageName>
     </properties>
     <modules>
         <module>plantuml-web</module>
         <module>plantuml-docker</module>
     </modules>
     <packaging>pom</packaging>
+
+    <scm>
+        <connection>https://github.com/maddingo/plantuml-server-new.git</connection>
+        <url>https://github.com/maddingo/plantuml-server-new</url>
+        <developerConnection>git@github.com:maddingo/plantuml-server-new.git</developerConnection>
+    </scm>
 
     <build>
         <pluginManagement>
