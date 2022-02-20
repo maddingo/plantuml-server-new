@@ -12,6 +12,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    if: github.ref != 'refs/heads/master'
     steps:
     - uses: actions/checkout@v2
     - name: Set up JDK 11
@@ -21,10 +22,11 @@ jobs:
         distribution: 'temurin'
         cache: maven
     - name: Verify
-      run: mvn -B clean verify
+      run: mvn -B clean verify -pl plantuml-web -am
 
   deployment:
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master'
     environment: Docker Hub
     steps:
       - uses: actions/checkout@v2

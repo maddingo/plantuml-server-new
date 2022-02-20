@@ -21,7 +21,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
  * USA.
  */
-package net.sourceforge.plantuml.servlet.utility;
+package net.sourceforge.plantuml.server.utility;
 
 import net.sourceforge.plantuml.OptionFlags;
 import net.sourceforge.plantuml.code.Transcoder;
@@ -51,8 +51,7 @@ public class UmlExtractor {
     public static String getUmlSource(String source) {
 
         // build the UML source from the compressed part of the URL
-        String text;
-        text = URLDecoder.decode(source, StandardCharsets.UTF_8);
+        String text = URLDecoder.decode(source, StandardCharsets.UTF_8);
         Transcoder transcoder = TranscoderUtil.getDefaultTranscoder();
         try {
             text = transcoder.decode(text);

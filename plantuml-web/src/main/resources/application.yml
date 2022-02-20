@@ -1,0 +1,6 @@
+debug: false
+spring:
+  jmx:
+    enabled: false
+  backgroundpreinitializer:
+    ignore: true

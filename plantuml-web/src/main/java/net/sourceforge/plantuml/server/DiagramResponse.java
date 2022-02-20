@@ -21,8 +21,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
  * USA.
  */
-package net.sourceforge.plantuml.servlet;
+package net.sourceforge.plantuml.server;
 
+import lombok.extern.slf4j.Slf4j;
 import net.sourceforge.plantuml.*;
 import net.sourceforge.plantuml.code.Base64Coder;
 import net.sourceforge.plantuml.core.Diagram;
@@ -30,12 +31,14 @@ import net.sourceforge.plantuml.core.DiagramDescription;
 import net.sourceforge.plantuml.core.ImageData;
 import net.sourceforge.plantuml.error.PSystemError;
 import net.sourceforge.plantuml.version.Version;
+import org.springframework.http.*;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 
@@ -43,11 +46,11 @@ import java.util.Map;
  * Delegates the diagram generation from the UML source and the filling of the HTTP response with the diagram in the
  * right format. Its own responsibility is to produce the right HTTP headers.
  */
+@Slf4j
 class DiagramResponse {
 
     private static final String POWERED_BY = "PlantUML Version " + Version.versionString();
 
-    private HttpServletResponse response;
     private FileFormat format;
     private HttpServletRequest request;
     private static final Map<FileFormat, String> CONTENT_TYPE;
@@ -64,14 +67,14 @@ class DiagramResponse {
     }
 
     DiagramResponse(HttpServletResponse r, FileFormat f, HttpServletRequest rq) {
-        response = r;
         format = f;
         request = rq;
     }
 
-    void sendDiagram(String uml, int idx) throws IOException {
-        response.addHeader("Access-Control-Allow-Origin", "*");
-        response.setContentType(getContentType());
+    ResponseEntity<?> sendDiagram(String uml, int idx) throws IOException {
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Access-Control-Allow-Origin", "*");
+        headers.setContentType(MediaType.parseMediaType(getContentType()));
         SourceStringReader reader = new SourceStringReader(uml);
         if (format == FileFormat.BASE64) {
             final ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -79,25 +82,28 @@ class DiagramResponse {
             baos.close();
             final String encodedBytes = "data:image/png;base64,"
                 + Base64Coder.encodeLines(baos.toByteArray()).replaceAll("\\s", "");
-            response.getOutputStream().write(encodedBytes.getBytes());
-            return;
+            return new ResponseEntity<>(encodedBytes, headers, HttpStatus.OK);
         }
         final BlockUml blockUml = reader.getBlocks().get(0);
         if (notModified(blockUml)) {
-            addHeaderForCache(blockUml);
-            response.sendError(HttpServletResponse.SC_NOT_MODIFIED);
-            return;
+            addHeaderForCache(headers, blockUml);
+            return ResponseEntity.status(HttpStatus.NOT_MODIFIED).headers(headers).build();
         }
         if (StringUtils.isDiagramCacheable(uml)) {
-            addHeaderForCache(blockUml);
+            addHeaderForCache(headers, blockUml);
         }
         final Diagram diagram = blockUml.getDiagram();
         if (diagram instanceof PSystemError) {
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            PSystemError err = (PSystemError) diagram;
+            log.error("Diagram generation Error: {} ({})", err.getDescription(), err.getLineLocation().toString());
+            return ResponseEntity.badRequest().build();
         }
-        final ImageData result = diagram.exportDiagram(response.getOutputStream(), idx, new FileFormatOption(format));
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        final ImageData result = diagram.exportDiagram(baos, idx, new FileFormatOption(format));
+        return new ResponseEntity<>(baos.toByteArray(), headers, HttpStatus.OK);
     }
 
+    @Deprecated
     private boolean notModified(BlockUml blockUml) {
         final String ifNoneMatch = request.getHeader("If-None-Match");
         final long ifModifiedSince = request.getDateHeader("If-Modified-Since");
@@ -111,61 +117,34 @@ class DiagramResponse {
         return ifNoneMatch.contains(etag);
     }
 
-
-    void sendMap(String uml) throws IOException {
-        response.setContentType(getContentType());
-        SourceStringReader reader = new SourceStringReader(uml);
-        final BlockUml blockUml = reader.getBlocks().get(0);
-        if (StringUtils.isDiagramCacheable(uml)) {
-            addHeaderForCache(blockUml);
-        }
-        final Diagram diagram = blockUml.getDiagram();
-        ImageData map = diagram.exportDiagram(new NullOutputStream(), 0,
-                new FileFormatOption(FileFormat.PNG, false));
-        if (map.containsCMapData()) {
-            PrintWriter httpOut = response.getWriter();
-            final String cmap = map.getCMapData("plantuml");
-            httpOut.print(cmap);
-        }
-   }
-
-    void sendCheck(String uml) throws IOException {
-        response.setContentType(getContentType());
-        SourceStringReader reader = new SourceStringReader(uml);
-        DiagramDescription desc = reader.outputImage(
-            new NullOutputStream(), new FileFormatOption(FileFormat.PNG, false));
-        PrintWriter httpOut = response.getWriter();
-        httpOut.print(desc.getDescription());
- }
-    private void addHeaderForCache(BlockUml blockUml) {
+    private static void addHeaderForCache(HttpHeaders headers, BlockUml blockUml) {
         long today = System.currentTimeMillis();
         // Add http headers to force the browser to cache the image
         final int maxAge = 3600 * 24 * 5;
-        response.addDateHeader("Expires", today + 1000L * maxAge);
-        response.addDateHeader("Date", today);
+        headers.setExpires(today + 1000L * maxAge);
+        headers.setDate(today);
 
-        response.addDateHeader("Last-Modified", blockUml.lastModified());
-        response.addHeader("Cache-Control", "public, max-age=" + maxAge);
+        headers.setLastModified(blockUml.lastModified());
+        headers.setCacheControl("public, max-age=" + maxAge);
         // response.addHeader("Cache-Control", "max-age=864000");
-        response.addHeader("Etag", "\"" + blockUml.etag() + "\"");
+        headers.setETag("\"" + blockUml.etag() + "\"");
         final Diagram diagram = blockUml.getDiagram();
-        response.addHeader("X-PlantUML-Diagram-Description", diagram.getDescription().getDescription());
+        headers.add("X-PlantUML-Diagram-Description", diagram.getDescription().getDescription());
         if (diagram instanceof PSystemError) {
             final PSystemError error = (PSystemError) diagram;
             for (ErrorUml err : error.getErrorsUml()) {
-                response.addHeader("X-PlantUML-Diagram-Error", err.getError());
-                response.addHeader("X-PlantUML-Diagram-Error-Line", "" + err.getLineLocation().getPosition());
+                headers.add("X-PlantUML-Diagram-Error", err.getError());
+                headers.add("X-PlantUML-Diagram-Error-Line", "" + err.getLineLocation().getPosition());
             }
         }
-        addHeaders(response);
+        addHeaders(headers);
     }
 
-    public static void addHeaders(HttpServletResponse response) {
-        response.addHeader("X-Powered-By", POWERED_BY);
-        response.addHeader("X-Patreon", "Support us on http://plantuml.com/patreon");
-        response.addHeader("X-Donate", "http://plantuml.com/paypal");
+    private static void addHeaders(HttpHeaders headers) {
+        headers.add("X-Powered-By", POWERED_BY);
+        headers.add("X-Patreon", "Support us on http://plantuml.com/patreon");
+        headers.add("X-Donate", "http://plantuml.com/paypal");
     }
-
 
     private String getContentType() {
         return CONTENT_TYPE.get(format);
