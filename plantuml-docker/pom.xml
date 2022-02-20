@@ -73,11 +73,12 @@
                 <artifactId>maven-dependency-plugin</artifactId>
                 <executions>
                     <execution>
-                        <id>copy-war-file</id>
+                        <id>copy-jar-file</id>
                         <goals><goal>copy-dependencies</goal></goals>
                         <phase>prepare-package</phase>
                         <configuration>
                             <stripVersion>true</stripVersion>
+                            <excludeTransitive>true</excludeTransitive>
                             <outputDirectory>${project.build.directory}</outputDirectory>
                         </configuration>
                     </execution>
