@@ -25,6 +25,7 @@ jobs:
 
   deployment:
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master'
     environment: Docker Hub
     steps:
       - uses: actions/checkout@v2
