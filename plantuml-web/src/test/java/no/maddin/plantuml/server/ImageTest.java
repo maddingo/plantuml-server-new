@@ -48,7 +48,7 @@ public class ImageTest {
 
             byte[] white = new byte[] {(byte) 0xff, (byte) 0xff, (byte) 0xff};
             byte[] burgundy = new byte[] {(byte) 0x99, (byte) 0x10, (byte) 0x39};
-            HtmlImage img = ((HtmlPage)page).getFirstByXPath("//p[@id='diagram']/img");
+            HtmlImage img = ((HtmlPage)page).getFirstByXPath("//div[@id='diagram']/img");
             WebResponse webResponse = img.getWebResponse(true);
             assertThat(webResponse.getContentType(), equalTo("image/png"));
             try (InputStream is = webResponse.getContentAsStream()) {
@@ -71,7 +71,7 @@ public class ImageTest {
         try (WebClient webClient = new WebClient()) {
             String appUrl = "http://localhost:" + port;
             HtmlPage page = webClient.getPage(appUrl + "/uml/" + bobAlice);
-            HtmlImage img = page.getFirstByXPath("//p[@id='diagram']/img");
+            HtmlImage img = page.getFirstByXPath("//div[@id='diagram']/img");
 
             WebResponse webResponse = img.getWebResponse(true);
             assertThat(webResponse.getContentType(), equalTo("image/png"));

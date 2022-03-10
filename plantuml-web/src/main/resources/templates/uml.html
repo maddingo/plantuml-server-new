@@ -7,7 +7,10 @@
     <meta http-equiv="cache-control" content="no-cache, must-revalidate" />
     <link rel="icon" href="/favicon.ico" type="image/x-icon"/>
     <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon"/>
-    <link rel="stylesheet" href="/plantuml.css" />
+    <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css"/>
+    <link rel="stylesheet" href="https://www.w3schools.com/lib/w3-theme-dark-grey.css"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+
     <!--link rel="stylesheet" href="${contextroot}/webjars/codemirror/3.21/lib/codemirror.css" /-->
     <!--script src="${contextroot}/webjars/codemirror/3.21/lib/codemirror.js"></script-->
     <!-- <script src="mode/plantuml.js"></script> -->
@@ -21,37 +24,50 @@
     </script-->
     <title>PlantUMLServer</title>
 </head>
-<body>
-<div id="header">
-    <h1>PlantUML Server</h1>
-    <a href="https://github.com/plantuml/plantuml-server" th:if="${#show_github_ribbon}">
-        <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://github-camo.global.ssl.fastly.net/a6677b08c955af8400f44c6298f40e7d19cc5b2d/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f677261795f3664366436642e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_gray_6d6d6d.png"/>
-    </a>
-    <p>Create your <a href="https://plantuml.com">PlantUML</a> diagrams directly in your browser !</p>
+<body class="w3-theme-l5 w3-text-theme">
+<div id="header" class="w3-row w3-hide-small w3-hide-medium">
+    <div class="w3-content">
+        <h1>PlantUML Server</h1>
+        <a href="https://github.com/plantuml/plantuml-server" th:if="${#show_github_ribbon}">
+            <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://github-camo.global.ssl.fastly.net/a6677b08c955af8400f44c6298f40e7d19cc5b2d/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f677261795f3664366436642e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_gray_6d6d6d.png"/>
+        </a>
+        <p class="w3-text-theme">Create your <a href="https://plantuml.com">PlantUML</a> diagrams directly in your browser !</p>
+    </div>
 </div>
-<div id="content">
+<div id="content" class="w3-row">
+    <div class="w3-col w3-third">
     <form method="post" accept-charset="UTF-8" th:action="@{/form}">
         <p>
-            <textarea id="text" name="text" cols="120" rows="10" th:text="${decodedDiagram}">/></textarea>
-            <input type="submit" />
+            <label>Type the code for the diagram here:</label>
+            <textarea id="text" name="text" class="w3-input" cols="120" rows="10" th:text="${decodedDiagram}"></textarea>
+            <input class="w3-button" type="submit" />
         </p>
     </form>
     <hr/>
-    <p>You can enter here a previously generated URL:</p>
     <form method="post" th:action="@{/url}">
         <p>
-            <input name="url" type="text" size="150" th:value="${diagramUrl}" />
-            <br/>
-            <input type="submit"/>
+            <label>You can enter here a previously generated URL:</label>
+            <input name="url" type="text" size="150" class="w3-input" th:value="${diagramUrl}" />
+            <input class="w3-button" type="submit"/>
         </p>
     </form>
-    <p id="diagram">
+    </div>
+    <div id="diagram" class="w3-col w3-twothird w3-center">
         <img th:src="${diagramImage}"/>
-    </p>
+        <!--div id="error" class="w3-red w3-panel"></div-->
+    </div>
 </div>
-<div id="footer">
-    <p th:text="${serverImpressum}">
-    </p>
+<div id="footer" class="w3-row w3-hide-small w3-hide-medium">
+    <p th:text="${serverImpressum}">PlantUML version 1.2.3, cool</p>
 </div>
+<!--script>
+    setInterval(updateImage, 3000);
+
+    function updateImage() {
+        var textElem = document.getElementById("text");
+        var errorElem = document.getElementById("error");
+        errorElem.innerHTML = textElem.innerHTML;
+    }
+</script-->
 </body>
 </html>
