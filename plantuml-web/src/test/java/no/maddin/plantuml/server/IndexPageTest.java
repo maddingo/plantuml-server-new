@@ -23,7 +23,7 @@ public class IndexPageTest {
         try (WebClient webClient = new WebClient()) {
             String appUrl = "http://localhost:" + port;
             HtmlPage indexPage = webClient.getPage(appUrl);
-            final HtmlHeading1 h1 = indexPage.getFirstByXPath("//div[@id='header']/h1");
+            final HtmlHeading1 h1 = indexPage.getFirstByXPath("//div[@id='header']/div/h1");
             assertThat(h1, hasProperty("textContent", equalTo("PlantUML Server")));
 
             HtmlTextArea textArea = indexPage.getFirstByXPath("//textarea[@id='text']");
