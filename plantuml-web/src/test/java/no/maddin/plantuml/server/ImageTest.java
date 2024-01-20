@@ -1,12 +1,12 @@
 package no.maddin.plantuml.server;
 
-import com.gargoylesoftware.htmlunit.Page;
-import com.gargoylesoftware.htmlunit.WebClient;
-import com.gargoylesoftware.htmlunit.WebResponse;
-import com.gargoylesoftware.htmlunit.html.HtmlImage;
-import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import net.sourceforge.plantuml.code.TranscoderUtil;
 import net.sourceforge.plantuml.server.Application;
+import org.htmlunit.Page;
+import org.htmlunit.WebClient;
+import org.htmlunit.WebResponse;
+import org.htmlunit.html.HtmlImage;
+import org.htmlunit.html.HtmlPage;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

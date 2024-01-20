@@ -1,8 +1,8 @@
 package no.maddin.plantuml.server;
 
-import com.gargoylesoftware.htmlunit.TextPage;
-import com.gargoylesoftware.htmlunit.WebClient;
 import net.sourceforge.plantuml.server.Application;
+import org.htmlunit.TextPage;
+import org.htmlunit.WebClient;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
