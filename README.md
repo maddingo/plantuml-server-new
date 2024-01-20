@@ -1,6 +1,6 @@
 # PlantUML Server
 
-![Build Status](https://github.com/maddingo/plantuml-server-new/actions/workflows/maven/badge.svg)
+![Build Status](https://github.com/maddingo/plantuml-server-new/actions/workflows/maven.yml/badge.svg)
 
 This is a new implementation of the plantuml-sever from https://github.com/plantuml/plantuml-server.
 
