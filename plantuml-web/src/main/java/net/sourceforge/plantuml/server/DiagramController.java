@@ -23,6 +23,8 @@
  */
 package net.sourceforge.plantuml.server;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import net.sourceforge.plantuml.FileFormat;
 import net.sourceforge.plantuml.OptionFlags;
@@ -37,8 +39,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -53,16 +53,12 @@ import java.util.regex.Pattern;
 @Controller
 public class DiagramController {
 
-    static {
-        OptionFlags.ALLOW_INCLUDE = "true".equalsIgnoreCase(System.getenv("ALLOW_PLANTUML_INCLUDE"));
-    }
-
     @RequestMapping(
         path = "/svg/{encodedDiagram}",
         method = {RequestMethod.GET},
         produces = "image/svg+xml"
     )
-    public ResponseEntity<?> getSvg(@PathVariable String encodedDiagram, HttpServletRequest request, HttpServletResponse response) throws IOException {
+    public ResponseEntity<?> getSvg(@PathVariable("encodedDiagram") String encodedDiagram, HttpServletRequest request, HttpServletResponse response) throws IOException {
         return doGet(encodedDiagram, request, response, FileFormat.SVG);
     }
 
@@ -81,7 +77,7 @@ public class DiagramController {
         method = {RequestMethod.GET},
         produces = MediaType.TEXT_PLAIN_VALUE
     )
-    public ResponseEntity<?> getTxt(@PathVariable String encodedDiagram, HttpServletRequest request, HttpServletResponse response) throws IOException {
+    public ResponseEntity<?> getTxt(@PathVariable("encodedDiagram") String encodedDiagram, HttpServletRequest request, HttpServletResponse response) throws IOException {
         return doGet(encodedDiagram, request, response, FileFormat.UTXT);
     }
 
@@ -90,7 +86,7 @@ public class DiagramController {
         method = {RequestMethod.GET},
         produces = MediaType.IMAGE_PNG_VALUE
     )
-    public ResponseEntity<?> getPng(@PathVariable String encodedDiagram, HttpServletRequest request, HttpServletResponse response) throws IOException {
+    public ResponseEntity<?> getPng(@PathVariable("encodedDiagram") String encodedDiagram, HttpServletRequest request, HttpServletResponse response) throws IOException {
         return doGet(encodedDiagram, request, response, FileFormat.PNG);
     }
 

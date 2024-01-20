@@ -1,6 +1,6 @@
-debug: false
+debug: true
 spring:
   jmx:
     enabled: false
-  backgroundpreinitializer:
-    ignore: true
+#  backgroundpreinitializer:
+#    ignore: true

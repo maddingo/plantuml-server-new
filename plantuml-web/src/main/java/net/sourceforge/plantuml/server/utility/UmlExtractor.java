@@ -37,10 +37,6 @@ import java.nio.charset.StandardCharsets;
  */
 public class UmlExtractor {
 
-    static {
-        OptionFlags.ALLOW_INCLUDE = "true".equalsIgnoreCase(System.getenv("ALLOW_PLANTUML_INCLUDE"));
-    }
-
     /**
      * Build the complete UML source from the compressed source extracted from the HTTP URI.
      *

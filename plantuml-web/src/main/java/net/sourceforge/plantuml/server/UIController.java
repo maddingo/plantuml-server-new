@@ -18,16 +18,12 @@ public class UIController {
 
     private static final String DEFAULT_ENCODED_TEXT = "SyfFKj2rKt3CoKnELR1Io4ZDoSa70000";
 
-    static {
-        OptionFlags.ALLOW_INCLUDE = "true".equalsIgnoreCase(System.getenv("ALLOW_PLANTUML_INCLUDE"));
-    }
-
     @GetMapping("/")
     public String index(Model model) {return "redirect:/uml/" + DEFAULT_ENCODED_TEXT;
     }
 
     @GetMapping("/uml/{encodedDiagram}")
-    public String uml(Model model, @PathVariable String encodedDiagram, UriComponentsBuilder uriBuilder) throws NoPlantumlCompressionException {
+    public String uml(Model model, @PathVariable("encodedDiagram") String encodedDiagram, UriComponentsBuilder uriBuilder) throws NoPlantumlCompressionException {
         updateModel(model, encodedDiagram, uriBuilder);
         return "uml";
     }
@@ -50,7 +46,7 @@ public class UIController {
         path = "/form",
         consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE
     )
-    public String form(Model model, UriComponentsBuilder uriBuilder, String text) throws IOException {
+    public String form(Model model, UriComponentsBuilder uriBuilder, @RequestParam("text") String text) throws IOException {
         String encodedText;
         if (text != null) {
             encodedText = getTranscoder().encode(text);
@@ -65,7 +61,7 @@ public class UIController {
         path = "/url",
         consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE
     )
-    public String url(Model model, UriComponentsBuilder uriBuilder, String url) throws IOException {
+    public String url(Model model, UriComponentsBuilder uriBuilder, @RequestParam("url") String url) throws IOException {
         String encodedText = UriComponentsBuilder.fromHttpUrl(url).build().getPathSegments().stream().skip(1).findAny().orElse(DEFAULT_ENCODED_TEXT);
         return "redirect:/uml/"+encodedText;
     }

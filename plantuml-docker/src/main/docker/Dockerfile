@@ -1,4 +1,4 @@
-FROM openjdk:11-jdk-slim as build
+FROM eclipse-temurin:21-jdk-jammy as build
 
 USER root
 RUN apt-get update && \

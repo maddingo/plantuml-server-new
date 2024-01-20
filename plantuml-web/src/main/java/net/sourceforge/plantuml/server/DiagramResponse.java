@@ -23,9 +23,10 @@
  */
 package net.sourceforge.plantuml.server;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import net.sourceforge.plantuml.*;
-import net.sourceforge.plantuml.code.Base64Coder;
 import net.sourceforge.plantuml.core.Diagram;
 import net.sourceforge.plantuml.core.DiagramDescription;
 import net.sourceforge.plantuml.core.ImageData;
@@ -33,12 +34,9 @@ import net.sourceforge.plantuml.error.PSystemError;
 import net.sourceforge.plantuml.version.Version;
 import org.springframework.http.*;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Map;
 
 
@@ -62,9 +60,6 @@ class DiagramResponse {
                 FileFormat.UTXT, "text/plain;charset=UTF-8",
                 FileFormat.BASE64, "text/plain; charset=x-user-defined");
     }
-    static {
-        OptionFlags.ALLOW_INCLUDE = "true".equalsIgnoreCase(System.getenv("ALLOW_PLANTUML_INCLUDE"));
-    }
 
     DiagramResponse(HttpServletResponse r, FileFormat f, HttpServletRequest rq) {
         format = f;
@@ -80,8 +75,9 @@ class DiagramResponse {
             final ByteArrayOutputStream baos = new ByteArrayOutputStream();
             final DiagramDescription result = reader.outputImage(baos, idx, new FileFormatOption(FileFormat.PNG));
             baos.close();
+
             final String encodedBytes = "data:image/png;base64,"
-                + Base64Coder.encodeLines(baos.toByteArray()).replaceAll("\\s", "");
+                + Base64.getEncoder().encodeToString(baos.toByteArray()).replaceAll("\\s", "");
             return new ResponseEntity<>(encodedBytes, headers, HttpStatus.OK);
         }
         final BlockUml blockUml = reader.getBlocks().get(0);
