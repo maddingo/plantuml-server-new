@@ -39,9 +39,7 @@ public class ProxyTest {
 
             HtmlPage page = webClient.getPage(getRequest);
 
-            SvgServletTest.validateBobAliceSvg(page, "1");
+            SvgTest.validateBobAliceSvg(page, "1");
         }
-
     }
-
 }

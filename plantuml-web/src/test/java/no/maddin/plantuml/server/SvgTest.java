@@ -29,7 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ContextConfiguration(classes = Application.class)
-public class SvgServletTest {
+public class SvgTest {
 
     private static String versionDiagram;
     private static String bobAlice;
