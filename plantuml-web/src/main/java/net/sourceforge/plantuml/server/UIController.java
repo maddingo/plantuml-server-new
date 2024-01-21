@@ -16,7 +16,7 @@ import java.util.List;
 @Controller
 public class UIController {
 
-    private static final String DEFAULT_ENCODED_TEXT = "SyfFKj2rKt3CoKnELR1Io4ZDoSa70000";
+    static final String DEFAULT_ENCODED_TEXT = "SyfFKj2rKt3CoKnELR1Io4ZDoSa70000";
 
     @GetMapping("/")
     public String index(Model model) {return "redirect:/uml/" + DEFAULT_ENCODED_TEXT;

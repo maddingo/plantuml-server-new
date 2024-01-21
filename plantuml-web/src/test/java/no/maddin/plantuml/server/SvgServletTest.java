@@ -20,12 +20,10 @@ import org.springframework.test.context.ContextConfiguration;
 
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.*;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -52,7 +50,7 @@ public class SvgServletTest {
         try (WebClient webClient = new WebClient()) {
             String appUrl = "http://localhost:" + port;
             HtmlPage svgImage = webClient.getPage(appUrl + "/svg/" + bobAlice);
-            validateBobAliceSvg(svgImage);
+            validateBobAliceSvg(svgImage, "");
         }
     }
 
@@ -63,10 +61,10 @@ public class SvgServletTest {
         assertThat(svgEntity, hasProperty("body", startsWith("<?xml")));
     }
 
-    private void validateBobAliceSvg(HtmlPage svgImage) {
+    static void validateBobAliceSvg(HtmlPage svgImage, String bobMarker) {
         assertEquals(svgImage.getWebResponse().getContentType(), "image/svg+xml");
-        List<DomElement> bobElems = svgImage.getByXPath("//*[text()='Bob']");
-        assertThat(bobElems, is(iterableWithSize(2)));
+        List<DomElement> bobElems = svgImage.getByXPath("//*[text()='Bob" + bobMarker + "']");
+        assertThat(bobElems, allOf(is(iterableWithSize(2)), everyItem(hasProperty("textContent", containsString("Bob" + bobMarker)))));
         List<DomElement> aliceElems = svgImage.getByXPath("//*[text()='Alice']");
         assertThat(aliceElems, is(iterableWithSize(2)));
         List<DomElement> helloElems = svgImage.getByXPath("//*[text()='hello']");
@@ -76,14 +74,14 @@ public class SvgServletTest {
     /**
      * Verifies the generation of the SVG for the Bob -> Alice sample, Form encoded, fails
      */
-//    @Test
+    @Test
     public void postedSequenceDiagramFormEncoded() throws Exception {
         try (WebClient webClient = new WebClient()) {
             WebRequest postRequest = createPostRequest("application/x-www-form-urlencoded; charset=UTF-8");
-            postRequest.setRequestBody(URLEncoder.encode("@startuml\nBob -> Alice : hello\n@enduml", StandardCharsets.UTF_8));
+            postRequest.setRequestBody("@startuml\nBob -> Alice : hello\n@enduml");
 
             HtmlPage svgImage = webClient.getPage(postRequest);
-            validateBobAliceSvg(svgImage);
+            validateBobAliceSvg(svgImage, "");
         }
     }
 
@@ -114,7 +112,7 @@ public class SvgServletTest {
             postRequest.setRequestBody("@startuml\nBob -> Alice : hello\n@enduml");
 
             HtmlPage svgImage = webClient.getPage(postRequest);
-            validateBobAliceSvg(svgImage);
+            validateBobAliceSvg(svgImage, "");
         }
     }
 
