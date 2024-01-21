@@ -19,7 +19,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ContextConfiguration;
 
 import java.net.MalformedURLException;
-import java.net.URL;
+import java.net.URI;
 import java.util.List;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -31,7 +31,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @ContextConfiguration(classes = Application.class)
 public class SvgTest {
 
-    private static String versionDiagram;
     private static String bobAlice;
 
     @LocalServerPort
@@ -39,7 +38,6 @@ public class SvgTest {
 
     @BeforeAll
     public static void init() throws Exception {
-        versionDiagram = TranscoderUtil.getDefaultTranscoder().encode("@startuml\nversion\n@enduml");
         bobAlice = TranscoderUtil.getDefaultTranscoder().encode("@startuml\nBob -> Alice : hello\n@enduml");
     }
     /**
@@ -71,23 +69,9 @@ public class SvgTest {
         assertThat(helloElems, is(iterableWithSize(1)));
     }
 
-    /**
-     * Verifies the generation of the SVG for the Bob -> Alice sample, Form encoded, fails
-     */
-    @Test
-    public void postedSequenceDiagramFormEncoded() throws Exception {
-        try (WebClient webClient = new WebClient()) {
-            WebRequest postRequest = createPostRequest("application/x-www-form-urlencoded; charset=UTF-8");
-            postRequest.setRequestBody("@startuml\nBob -> Alice : hello\n@enduml");
-
-            HtmlPage svgImage = webClient.getPage(postRequest);
-            validateBobAliceSvg(svgImage, "");
-        }
-    }
-
     private WebRequest createPostRequest(String contentType) throws MalformedURLException {
         String appUrl = "http://localhost:" + port;
-        WebRequest postRequest = new WebRequest(new URL(appUrl + "/svg/"), HttpMethod.POST);
+        WebRequest postRequest = new WebRequest(URI.create(appUrl + "/svg").toURL(), HttpMethod.POST);
         postRequest.setAdditionalHeader("Accept", "*/*");
         postRequest.setAdditionalHeader("Referer", appUrl);
         postRequest.setAdditionalHeader("Accept-Language", "en-US,en;q=0.8");

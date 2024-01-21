@@ -26,20 +26,18 @@ package net.sourceforge.plantuml.server;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
-import net.sourceforge.plantuml.FileFormat;
+import net.sourceforge.plantuml.*;
 import net.sourceforge.plantuml.code.TranscoderUtil;
+import net.sourceforge.plantuml.core.Diagram;
+import net.sourceforge.plantuml.core.DiagramDescription;
+import net.sourceforge.plantuml.core.ImageData;
+import net.sourceforge.plantuml.error.PSystemError;
 import net.sourceforge.plantuml.syntax.LanguageDescriptor;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import net.sourceforge.plantuml.version.Version;
+import org.springframework.http.*;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 
-import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -47,8 +45,10 @@ import java.net.*;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+import java.util.Map;
 import java.util.Optional;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 
@@ -58,6 +58,18 @@ import java.util.regex.Pattern;
 @Slf4j
 @Controller
 public class DiagramController {
+
+    private static final String POWERED_BY = "PlantUML Version " + Version.versionString();
+    private static final Map<FileFormat, String> CONTENT_TYPE;
+    static {
+        CONTENT_TYPE = Map.of(
+            FileFormat.PNG, "image/png",
+            FileFormat.SVG, "image/svg+xml",
+            FileFormat.EPS, "application/postscript",
+            FileFormat.UTXT, "text/plain;charset=UTF-8",
+            FileFormat.BASE64, "text/plain; charset=x-user-defined");
+    }
+
 
     @RequestMapping(
         path = "/svg/{encodedDiagram}",
@@ -69,14 +81,14 @@ public class DiagramController {
     }
 
     @RequestMapping(
-        path = "/svg/",
+        path = "/svg",
         method = {RequestMethod.POST},
+        consumes = MediaType.TEXT_PLAIN_VALUE,
         produces = "image/svg+xml"
     )
-    public ResponseEntity<?> postSvg(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        return doPost(request, FileFormat.SVG);
+    public ResponseEntity<?> postSvgPlain(@RequestBody String uml, HttpServletRequest request, HttpServletResponse response) throws IOException {
+        return entity(FileFormat.SVG, request, uml, 0);
     }
-
 
     @RequestMapping(
         path = "/txt/{encodedDiagram}",
@@ -139,7 +151,7 @@ public class DiagramController {
     {
         FileFormat outputFormat = FileFormat.valueOf(format.toUpperCase());
         String uml = getDiagramSource(src, index);
-        return doDiagramResponse(request, uml, 0, outputFormat);
+        return entity(outputFormat, request, uml, 0);
     }
 
     private String getDiagramSource(String srcUri, int index) throws IOException {
@@ -155,7 +167,7 @@ public class DiagramController {
     }
 
     private String findIndexedSource(String sourceText, int index) {
-        int startIdx = sourceText.indexOf("@startuml", 0);;
+        int startIdx = sourceText.indexOf("@startuml");
         for (int i = 0; i < index && startIdx >= 0; i++) {
             startIdx = sourceText.indexOf("@startuml", startIdx + 8);
         }
@@ -197,72 +209,85 @@ public class DiagramController {
     private ResponseEntity<?> doGet(String encodedDiagram, HttpServletRequest request, FileFormat outputFormat) throws IOException {
 
         // build the UML source from the compressed request parameter
-        final String uml;
         try {
-            uml = TranscoderUtil.getDefaultTranscoder().decode(encodedDiagram);
+            String uml = TranscoderUtil.getDefaultTranscoder().decode(encodedDiagram);
+            return entity(outputFormat, request, uml, 0);
         } catch (Exception e) {
             log.error("Extract UML source", e);
             return ResponseEntity.badRequest().build();
         }
-
-        return doDiagramResponse(request, uml, 0, outputFormat);
     }
 
-    private ResponseEntity<?> doPost(HttpServletRequest request, FileFormat outputFormat) throws IOException {
+    static ResponseEntity<?> entity(FileFormat format, HttpServletRequest request, String uml, int idx) throws IOException {
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Access-Control-Allow-Origin", "*");
+        headers.setContentType(MediaType.parseMediaType(CONTENT_TYPE.get(format)));
+        SourceStringReader reader = new SourceStringReader(uml);
+        if (format == FileFormat.BASE64) {
+            final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            final DiagramDescription result = reader.outputImage(baos, idx, new FileFormatOption(FileFormat.PNG));
+            baos.close();
 
-        // build the UML source from the compressed request parameter
-        final String[] sourceAndIdx = getSourceAndIdx(request);
-        final int idx = Integer.parseInt(sourceAndIdx[1]);
-
-        final StringBuilder uml = new StringBuilder();
-        final BufferedReader in = request.getReader();
-        while (true) {
-            final String line = in.readLine();
-            if (line == null) {
-                break;
-            }
-            uml.append(line).append('\n');
+            final String encodedBytes = "data:image/png;base64,"
+                + Base64.getEncoder().encodeToString(baos.toByteArray()).replaceAll("\\s", "");
+            return new ResponseEntity<>(encodedBytes, headers, HttpStatus.OK);
         }
-
-        return doDiagramResponse(request, uml.toString(), idx, outputFormat);
+        final BlockUml blockUml = reader.getBlocks().getFirst();
+        if (notModified(request, blockUml)) {
+            addHeaderForCache(headers, blockUml);
+            return ResponseEntity.status(HttpStatus.NOT_MODIFIED).headers(headers).build();
+        }
+        if (StringUtils.isDiagramCacheable(uml)) {
+            addHeaderForCache(headers, blockUml);
+        }
+        final Diagram diagram = blockUml.getDiagram();
+        if (diagram instanceof PSystemError err) {
+            log.error("Diagram generation Error: {} ({})", err.getDescription(), err.getLineLocation().toString());
+            return ResponseEntity.badRequest().build();
+        }
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        final ImageData result = diagram.exportDiagram(baos, idx, new FileFormatOption(format));
+        return new ResponseEntity<>(baos.toByteArray(), headers, HttpStatus.OK);
     }
 
-    private ResponseEntity<?> doDiagramResponse(
-        HttpServletRequest request,
-        String uml,
-        int idx,
-        FileFormat outputFormat)
-        throws IOException
-    {
-
-        return new DiagramResponse(outputFormat, request).entity(uml, idx);
+    private static boolean notModified(HttpServletRequest request, BlockUml blockUml) {
+        final String ifNoneMatch = request.getHeader("If-None-Match");
+        final long ifModifiedSince = request.getDateHeader("If-Modified-Since");
+        if (ifModifiedSince != -1 && ifModifiedSince != blockUml.lastModified()) {
+            return false;
+        }
+        final String etag = blockUml.etag();
+        if (ifNoneMatch == null) {
+            return false;
+        }
+        return ifNoneMatch.contains(etag);
     }
 
-    private static final Pattern RECOVER_UML_PATTERN = Pattern.compile("/\\w+/(\\d+/)?(.*)");
+    private static void addHeaderForCache(HttpHeaders headers, BlockUml blockUml) {
+        long today = System.currentTimeMillis();
+        // Add http headers to force the browser to cache the image
+        final int maxAge = 3600 * 24 * 5;
+        headers.setExpires(today + 1000L * maxAge);
+        headers.setDate(today);
 
-    /**
-     * Extracts the compressed UML source from the HTTP URI.
-     *
-     * @return the compressed UML source
-     */
-    private String[] getSourceAndIdx(HttpServletRequest request) {
-        final Matcher recoverUml = RECOVER_UML_PATTERN.matcher(
-            request.getRequestURI().substring(
-            request.getContextPath().length()));
-        // the URL form has been submitted
-        if (recoverUml.matches()) {
-            final String data = recoverUml.group(2);
-            if (data.length() >= 4) {
-                String idx = recoverUml.group(1);
-                if (idx == null) {
-                    idx = "0";
-                } else {
-                    idx = idx.substring(0, idx.length() - 1);
-                }
-                return new String[]{data, idx };
+        headers.setLastModified(blockUml.lastModified());
+        headers.setCacheControl("public, max-age=" + maxAge);
+        // response.addHeader("Cache-Control", "max-age=864000");
+        headers.setETag("\"" + blockUml.etag() + "\"");
+        final Diagram diagram = blockUml.getDiagram();
+        headers.add("X-PlantUML-Diagram-Description", diagram.getDescription().getDescription());
+        if (diagram instanceof PSystemError error) {
+            for (ErrorUml err : error.getErrorsUml()) {
+                headers.add("X-PlantUML-Diagram-Error", err.getError());
+                headers.add("X-PlantUML-Diagram-Error-Line", "" + err.getLineLocation().getPosition());
             }
         }
-        return new String[]{"", "0" };
+        addHeaders(headers);
     }
 
+    private static void addHeaders(HttpHeaders headers) {
+        headers.add("X-Powered-By", POWERED_BY);
+        headers.add("X-Patreon", "Support us on http://plantuml.com/patreon");
+        headers.add("X-Donate", "http://plantuml.com/paypal");
+    }
 }
