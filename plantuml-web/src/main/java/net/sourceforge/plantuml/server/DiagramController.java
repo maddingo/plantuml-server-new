@@ -28,7 +28,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import net.sourceforge.plantuml.FileFormat;
 import net.sourceforge.plantuml.code.TranscoderUtil;
-import net.sourceforge.plantuml.klimt.shape.TextBlockUtils;
 import net.sourceforge.plantuml.syntax.LanguageDescriptor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -66,7 +65,7 @@ public class DiagramController {
         produces = "image/svg+xml"
     )
     public ResponseEntity<?> getSvg(@PathVariable("encodedDiagram") String encodedDiagram, HttpServletRequest request, HttpServletResponse response) throws IOException {
-        return doGet(encodedDiagram, request, response, FileFormat.SVG);
+        return doGet(encodedDiagram, request, FileFormat.SVG);
     }
 
     @RequestMapping(
@@ -75,7 +74,7 @@ public class DiagramController {
         produces = "image/svg+xml"
     )
     public ResponseEntity<?> postSvg(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        return doPost(request, response, FileFormat.SVG);
+        return doPost(request, FileFormat.SVG);
     }
 
 
@@ -85,7 +84,7 @@ public class DiagramController {
         produces = MediaType.TEXT_PLAIN_VALUE
     )
     public ResponseEntity<?> getTxt(@PathVariable("encodedDiagram") String encodedDiagram, HttpServletRequest request, HttpServletResponse response) throws IOException {
-        return doGet(encodedDiagram, request, response, FileFormat.UTXT);
+        return doGet(encodedDiagram, request, FileFormat.UTXT);
     }
 
     @RequestMapping(
@@ -94,7 +93,7 @@ public class DiagramController {
         produces = MediaType.IMAGE_PNG_VALUE
     )
     public ResponseEntity<?> getPng(@PathVariable("encodedDiagram") String encodedDiagram, HttpServletRequest request, HttpServletResponse response) throws IOException {
-        return doGet(encodedDiagram, request, response, FileFormat.PNG);
+        return doGet(encodedDiagram, request, FileFormat.PNG);
     }
 
     @RequestMapping(
@@ -136,11 +135,11 @@ public class DiagramController {
         @RequestParam(name = "src") String src,
         @RequestParam(name = "fmt", required = false, defaultValue = "svg") String format,
         @RequestParam(name = "idx", required = false, defaultValue = "0") int index,
-        HttpServletRequest request, HttpServletResponse response) throws IOException
+        HttpServletRequest request) throws IOException
     {
         FileFormat outputFormat = FileFormat.valueOf(format.toUpperCase());
         String uml = getDiagramSource(src, index);
-        return doDiagramResponse(request, response, uml, 0, outputFormat);
+        return doDiagramResponse(request, uml, 0, outputFormat);
     }
 
     private String getDiagramSource(String srcUri, int index) throws IOException {
@@ -195,7 +194,7 @@ public class DiagramController {
         return Optional.empty();
     }
 
-    private ResponseEntity<?> doGet(String encodedDiagram, HttpServletRequest request, HttpServletResponse response, FileFormat outputFormat) throws IOException {
+    private ResponseEntity<?> doGet(String encodedDiagram, HttpServletRequest request, FileFormat outputFormat) throws IOException {
 
         // build the UML source from the compressed request parameter
         final String uml;
@@ -206,10 +205,10 @@ public class DiagramController {
             return ResponseEntity.badRequest().build();
         }
 
-        return doDiagramResponse(request, response, uml, 0, outputFormat);
+        return doDiagramResponse(request, uml, 0, outputFormat);
     }
 
-    private ResponseEntity<?> doPost(HttpServletRequest request, HttpServletResponse response, FileFormat outputFormat) throws IOException {
+    private ResponseEntity<?> doPost(HttpServletRequest request, FileFormat outputFormat) throws IOException {
 
         // build the UML source from the compressed request parameter
         final String[] sourceAndIdx = getSourceAndIdx(request);
@@ -225,19 +224,18 @@ public class DiagramController {
             uml.append(line).append('\n');
         }
 
-        return doDiagramResponse(request, response, uml.toString(), idx, outputFormat);
+        return doDiagramResponse(request, uml.toString(), idx, outputFormat);
     }
 
     private ResponseEntity<?> doDiagramResponse(
         HttpServletRequest request,
-        HttpServletResponse response,
         String uml,
         int idx,
         FileFormat outputFormat)
         throws IOException
     {
 
-        return new DiagramResponse(response, outputFormat, request).sendDiagram(uml, idx);
+        return new DiagramResponse(outputFormat, request).entity(uml, idx);
     }
 
     private static final Pattern RECOVER_UML_PATTERN = Pattern.compile("/\\w+/(\\d+/)?(.*)");

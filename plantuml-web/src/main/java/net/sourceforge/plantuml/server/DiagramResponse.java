@@ -24,7 +24,7 @@
 package net.sourceforge.plantuml.server;
 
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.sourceforge.plantuml.*;
 import net.sourceforge.plantuml.core.Diagram;
@@ -45,12 +45,13 @@ import java.util.Map;
  * right format. Its own responsibility is to produce the right HTTP headers.
  */
 @Slf4j
+@RequiredArgsConstructor
 class DiagramResponse {
 
     private static final String POWERED_BY = "PlantUML Version " + Version.versionString();
 
-    private FileFormat format;
-    private HttpServletRequest request;
+    private final FileFormat format;
+    private final HttpServletRequest request;
     private static final Map<FileFormat, String> CONTENT_TYPE;
     static {
         CONTENT_TYPE = Map.of(
@@ -61,12 +62,7 @@ class DiagramResponse {
                 FileFormat.BASE64, "text/plain; charset=x-user-defined");
     }
 
-    DiagramResponse(HttpServletResponse r, FileFormat f, HttpServletRequest rq) {
-        format = f;
-        request = rq;
-    }
-
-    ResponseEntity<?> sendDiagram(String uml, int idx) throws IOException {
+    ResponseEntity<?> entity(String uml, int idx) throws IOException {
         HttpHeaders headers = new HttpHeaders();
         headers.add("Access-Control-Allow-Origin", "*");
         headers.setContentType(MediaType.parseMediaType(getContentType()));
@@ -80,7 +76,7 @@ class DiagramResponse {
                 + Base64.getEncoder().encodeToString(baos.toByteArray()).replaceAll("\\s", "");
             return new ResponseEntity<>(encodedBytes, headers, HttpStatus.OK);
         }
-        final BlockUml blockUml = reader.getBlocks().get(0);
+        final BlockUml blockUml = reader.getBlocks().getFirst();
         if (notModified(blockUml)) {
             addHeaderForCache(headers, blockUml);
             return ResponseEntity.status(HttpStatus.NOT_MODIFIED).headers(headers).build();
@@ -89,8 +85,7 @@ class DiagramResponse {
             addHeaderForCache(headers, blockUml);
         }
         final Diagram diagram = blockUml.getDiagram();
-        if (diagram instanceof PSystemError) {
-            PSystemError err = (PSystemError) diagram;
+        if (diagram instanceof PSystemError err) {
             log.error("Diagram generation Error: {} ({})", err.getDescription(), err.getLineLocation().toString());
             return ResponseEntity.badRequest().build();
         }
@@ -99,7 +94,6 @@ class DiagramResponse {
         return new ResponseEntity<>(baos.toByteArray(), headers, HttpStatus.OK);
     }
 
-    @Deprecated
     private boolean notModified(BlockUml blockUml) {
         final String ifNoneMatch = request.getHeader("If-None-Match");
         final long ifModifiedSince = request.getDateHeader("If-Modified-Since");
