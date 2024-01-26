@@ -68,7 +68,10 @@
                     </execution>
                     <execution>
                         <id>push-docker-image-latest</id>
-                        <goals><goal>push</goal></goals>
+                        <goals>
+                            <goal>tag</goal>
+                            <goal>push</goal>
+                        </goals>
                         <phase>deploy</phase>
                         <configuration>
                             <tag>latest</tag>
