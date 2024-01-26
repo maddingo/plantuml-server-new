@@ -66,6 +66,14 @@
                         <goals><goal>push</goal></goals>
                         <phase>deploy</phase>
                     </execution>
+                    <execution>
+                        <id>push-docker-image-latest</id>
+                        <goals><goal>push</goal></goals>
+                        <phase>deploy</phase>
+                        <configuration>
+                            <tag>latest</tag>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
             <plugin>
