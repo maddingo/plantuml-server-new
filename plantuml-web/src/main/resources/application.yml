@@ -39,3 +39,4 @@ plantuml:
 #        C8YRNCLnBgR2CCp27D0wuadL9aFITlx91GPytF9BKxzy949VaF6SEw9M86oouj362u/BvP
 #        CO7Hnjlg77HRNFXPAAAAFWxrYW1pcmVkZHlAdm13YXJlLmNvbQECAwQF
 #        -----END OPENSSH PRIVATE KEY-----
+#      pass-phrase: 'secret' # optional
