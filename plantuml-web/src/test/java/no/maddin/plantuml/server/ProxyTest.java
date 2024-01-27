@@ -35,10 +35,9 @@ public class ProxyTest {
 
     @Container
     static GitServerContainer gitServer =
-        new PatchedGitServerContainer(GitServerVersions.V2_43.getDockerImageName())
+        new GitServerContainer(GitServerVersions.V2_43.getDockerImageName())
             .withSshKeyAuth()
             .withGitRepo("plantuml")
-            .withEnv("SSH_AUTH_METHODS", "publickey")
             .withCopyExistingGitRepoToContainer(new File(".").getAbsoluteFile().getParentFile().getParent())
         ;
 
