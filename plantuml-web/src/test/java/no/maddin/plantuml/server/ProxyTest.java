@@ -3,12 +3,12 @@ package no.maddin.plantuml.server;
 import com.github.sparsick.testcontainers.gitserver.GitServerVersions;
 import com.github.sparsick.testcontainers.gitserver.plain.GitServerContainer;
 import net.sourceforge.plantuml.server.Application;
-import net.sourceforge.plantuml.server.PlantumlConfigProperties;
 import org.htmlunit.HttpMethod;
 import org.htmlunit.WebClient;
 import org.htmlunit.WebRequest;
 import org.htmlunit.html.HtmlPage;
 import org.htmlunit.util.NameValuePair;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -22,7 +22,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import java.io.File;
 import java.net.URI;
 import java.util.List;
-import java.util.Map;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ContextConfiguration(classes = Application.class)
@@ -35,10 +34,9 @@ public class ProxyTest {
 
     @Container
     static GitServerContainer gitServer =
-        new PatchedGitServerContainer(GitServerVersions.V2_43.getDockerImageName())
+        new GitServerContainer(GitServerVersions.V2_43.getDockerImageName())
             .withSshKeyAuth()
             .withGitRepo("plantuml")
-            .withEnv("SSH_AUTH_METHODS", "publickey")
             .withCopyExistingGitRepoToContainer(new File(".").getAbsoluteFile().getParentFile().getParent())
         ;
 
@@ -51,6 +49,7 @@ public class ProxyTest {
     }
 
     @Test
+    @Tag("smoke")
     void httpSrcRequest() throws Exception {
 
         try (
@@ -77,11 +76,11 @@ public class ProxyTest {
 
         try (WebClient webClient = new WebClient()) {
             String appUrl = "http://localhost:" + port;
-
+            String currentBranch = "HEAD";
             WebRequest getRequest = new WebRequest(URI.create(appUrl + "/proxy").toURL(), HttpMethod.GET);
             getRequest.setAdditionalHeader("Accept", "*/*");
             getRequest.setAdditionalHeader("Referer", appUrl);
-            String srcUri = String.format("git+%s?branch=master#plantuml-web/src/test/resources/bob.puml", gitServer.getGitRepoURIAsSSH().toString());
+            String srcUri = String.format("git+%s?branch=%s#plantuml-web/src/test/resources/bob.puml", gitServer.getGitRepoURIAsSSH().toString(), currentBranch);
             getRequest.setRequestParameters(List.of(
                 new NameValuePair("src", srcUri)
             ));
