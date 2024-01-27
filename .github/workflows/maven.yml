@@ -15,8 +15,8 @@ jobs:
     if: github.ref != 'refs/heads/master'
     steps:
     - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0 # for the sake of the integration test
+#      with:
+#        fetch-depth: 0 # for the sake of the integration test
     - name: Set up JDK 21
       uses: actions/setup-java@v4
       with:

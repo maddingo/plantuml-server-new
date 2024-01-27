@@ -76,11 +76,11 @@ public class ProxyTest {
 
         try (WebClient webClient = new WebClient()) {
             String appUrl = "http://localhost:" + port;
-
+            String currentBranch = "HEAD";
             WebRequest getRequest = new WebRequest(URI.create(appUrl + "/proxy").toURL(), HttpMethod.GET);
             getRequest.setAdditionalHeader("Accept", "*/*");
             getRequest.setAdditionalHeader("Referer", appUrl);
-            String srcUri = String.format("git+%s?branch=master#plantuml-web/src/test/resources/bob.puml", gitServer.getGitRepoURIAsSSH().toString());
+            String srcUri = String.format("git+%s?branch=%s#plantuml-web/src/test/resources/bob.puml", gitServer.getGitRepoURIAsSSH().toString(), currentBranch);
             getRequest.setRequestParameters(List.of(
                 new NameValuePair("src", srcUri)
             ));
