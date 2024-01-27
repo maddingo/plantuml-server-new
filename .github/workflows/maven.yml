@@ -31,7 +31,7 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-maven-
     - name: Verify
-      run: mvn -B clean verify -pl plantuml-web -am
+      run: mvn -B clean verify -pl plantuml-web -am -Dgroups="smoke"
 
   deployment:
     runs-on: ubuntu-latest

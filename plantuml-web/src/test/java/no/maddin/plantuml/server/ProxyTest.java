@@ -3,12 +3,12 @@ package no.maddin.plantuml.server;
 import com.github.sparsick.testcontainers.gitserver.GitServerVersions;
 import com.github.sparsick.testcontainers.gitserver.plain.GitServerContainer;
 import net.sourceforge.plantuml.server.Application;
-import net.sourceforge.plantuml.server.PlantumlConfigProperties;
 import org.htmlunit.HttpMethod;
 import org.htmlunit.WebClient;
 import org.htmlunit.WebRequest;
 import org.htmlunit.html.HtmlPage;
 import org.htmlunit.util.NameValuePair;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -22,7 +22,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import java.io.File;
 import java.net.URI;
 import java.util.List;
-import java.util.Map;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ContextConfiguration(classes = Application.class)
@@ -50,6 +49,7 @@ public class ProxyTest {
     }
 
     @Test
+    @Tag("smoke")
     void httpSrcRequest() throws Exception {
 
         try (
