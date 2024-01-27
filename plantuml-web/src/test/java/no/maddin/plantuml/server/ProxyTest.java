@@ -21,6 +21,8 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.io.File;
 import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -81,6 +83,27 @@ public class ProxyTest {
             getRequest.setAdditionalHeader("Accept", "*/*");
             getRequest.setAdditionalHeader("Referer", appUrl);
             String srcUri = String.format("git+%s?branch=%s#plantuml-web/src/test/resources/bob.puml", gitServer.getGitRepoURIAsSSH().toString(), currentBranch);
+            getRequest.setRequestParameters(List.of(
+                new NameValuePair("src", srcUri)
+            ));
+
+            HtmlPage page = webClient.getPage(getRequest);
+
+            SvgTest.validateBobAliceSvg(page, "");
+        }
+    }
+
+    @Test
+    void gitSrcRequestFullUri() throws Exception {
+
+        try (WebClient webClient = new WebClient()) {
+            String appUrl = "http://localhost:" + port;
+            String currentBranch = "HEAD";
+            String srcUri = String.format("git+%s?branch=%s#plantuml-web/src/test/resources/bob.puml", gitServer.getGitRepoURIAsSSH().toString(), currentBranch);
+            URI requestUri = URI.create(appUrl + "/proxy?src=" + URLEncoder.encode(srcUri, StandardCharsets.UTF_8));
+            WebRequest getRequest = new WebRequest(requestUri.toURL(), HttpMethod.GET);
+            getRequest.setAdditionalHeader("Accept", "*/*");
+            getRequest.setAdditionalHeader("Referer", appUrl);
             getRequest.setRequestParameters(List.of(
                 new NameValuePair("src", srcUri)
             ));
