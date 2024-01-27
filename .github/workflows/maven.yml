@@ -38,7 +38,7 @@ jobs:
       with:
         name: JUnit Tests            # Name of the check run which will be created
         path: '*/target/surefire-reports/TEST-*.xml'    # Path to test results
-        reporter: jest-junit        # Format of test results
+        reporter: java-junit        # Format of test results
 
   deployment:
     runs-on: ubuntu-latest
@@ -74,4 +74,4 @@ jobs:
         with:
           name: JUnit Tests            # Name of the check run which will be created
           path: '*/target/surefire-reports/TEST-*.xml'    # Path to test results
-          reporter: jest-junit        # Format of test results
+          reporter: java-junit        # Format of test results
