@@ -3,3 +3,4 @@ target/
 .idea/
 .envrc
 /plantuml-web/config/
+pom.xml.versionsBackup
