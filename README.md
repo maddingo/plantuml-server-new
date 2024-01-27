@@ -15,7 +15,7 @@ Then go to http://localhost:8080 to see the plantuml server.
 ## Configuration
 The application is configured like any other Spring Boot application, through either environment variables, command line arguments, application.properties of application.yml file.
 
-An example can be found in the code repository [application.yml](src/main/resources/application.yml)
+An example can be found in the code repository [application.yml](plantuml-web/src/main/resources/application.yml)
 
 ## Proxy git ssh
 You can proxy git ssh URLs `http://localhost:8080/proxy?src=git+ssh://git@github.com/my-org/my-repo?branch=main#path/to/file`
