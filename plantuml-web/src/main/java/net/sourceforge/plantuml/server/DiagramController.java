@@ -253,28 +253,23 @@ public class DiagramController {
         HttpClient.Builder clientBuilder = HttpClient.newBuilder()
             .followRedirects(HttpClient.Redirect.NORMAL);
 
-        Optional<Authenticator> authConfig = getHttpAuthenticator(srcUrl);
-        if (authConfig.isPresent()) {
-            clientBuilder = clientBuilder.authenticator(authConfig.get());
-        }
         try (HttpClient client = clientBuilder.build()) {
-            HttpResponse<String> response = client.send(HttpRequest.newBuilder(srcUrl.toURI()).GET().build(), HttpResponse.BodyHandlers.ofString());
+            HttpRequest.Builder contentRequestBuilder = HttpRequest.newBuilder(srcUrl.toURI()).GET();
+            getHttpAuthenticator(srcUrl)
+                .ifPresent(authString -> contentRequestBuilder.header(HttpHeaders.AUTHORIZATION, authString));
+
+            HttpResponse<String> response = client.send(contentRequestBuilder.build(), HttpResponse.BodyHandlers.ofString());
             return response.body();
         } catch (IOException | URISyntaxException | InterruptedException e) {
             throw new RuntimeException(e);
         }
     }
 
-    private Optional<Authenticator> getHttpAuthenticator(URL srcUrl) {
+    private Optional<String> getHttpAuthenticator(URL srcUrl) {
         String authKey = getAuthKey(srcUrl);
         return Optional.ofNullable(config.getHttpAuth())
             .flatMap(auth -> Optional.ofNullable(auth.get(authKey)))
-            .map(auth -> new Authenticator() {
-                @Override
-                protected PasswordAuthentication getPasswordAuthentication() {
-                    return new PasswordAuthentication(auth.getUsername(), auth.getPassword().toCharArray());
-                }
-            });
+            .map(auth -> "Basic " + Base64.getEncoder().encodeToString((auth.getUsername() + ":" + auth.getPassword()).getBytes()));
     }
 
     private static String getAuthKey(URL srcUrl) {
@@ -283,6 +278,12 @@ public class DiagramController {
         if (srcUrl.getPort() > 0) {
             sb.append(":").append(srcUrl.getPort());
         }
+        String firstPath = Optional.ofNullable(srcUrl.getPath())
+            .map(path -> path.split("/"))
+            .filter(path -> path.length > 1)
+            .map(path -> path[1])
+            .orElse("");
+        sb.append("/").append(firstPath);
         return sb.toString();
     }
 
