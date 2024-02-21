@@ -23,8 +23,6 @@
  */
 package net.sourceforge.plantuml.server;
 
-import com.jcraft.jsch.*;
-import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -35,14 +33,9 @@ import net.sourceforge.plantuml.core.Diagram;
 import net.sourceforge.plantuml.core.DiagramDescription;
 import net.sourceforge.plantuml.core.ImageData;
 import net.sourceforge.plantuml.error.PSystemError;
-import net.sourceforge.plantuml.server.PlantumlConfigProperties.GitAuthConfig;
 import net.sourceforge.plantuml.syntax.LanguageDescriptor;
 import net.sourceforge.plantuml.version.Version;
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.errors.TransportException;
-import org.eclipse.jgit.transport.*;
-import org.eclipse.jgit.util.FS;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -51,21 +44,18 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.net.*;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Base64;
-import java.util.Comparator;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Function;
-import java.util.stream.Stream;
+import java.util.stream.Collectors;
 
 
 /**
@@ -73,7 +63,6 @@ import java.util.stream.Stream;
  */
 @Slf4j
 @Controller
-@RequiredArgsConstructor
 public class DiagramController {
 
     private static final String POWERED_BY = "PlantUML Version " + Version.versionString();
@@ -87,11 +76,12 @@ public class DiagramController {
             FileFormat.BASE64, "text/plain; charset=x-user-defined");
     }
 
-    private final PlantumlConfigProperties config;
+    private final Map<String, PlantumlConfigProperties.HttpAuthConfig> config;
 
-    @PostConstruct
-    private void init() {
-        SshSessionFactory.setInstance(new MemoryJschConfigSessionFactory(config.getGitAuth()) {});
+    public DiagramController(PlantumlConfigProperties config) {
+        this.config = config.getHttp().entrySet().stream()
+            .filter(e -> Optional.ofNullable(e.getValue()).map(PlantumlConfigProperties.HttpAuthConfig::getUrl).isPresent())
+            .collect(Collectors.toMap(e -> e.getValue().getUrl(), Map.Entry::getValue));
     }
 
     @RequestMapping(
@@ -182,7 +172,6 @@ public class DiagramController {
         String scheme = srcUri.getScheme();
         String sourceText = switch (scheme) {
             case "http", "https" -> getHttpSourceDocument(srcUri.toURL());
-            case "git+ssh" -> getGitSourceDocument(srcUri);
             default -> throw new IllegalArgumentException("Unsupported scheme: " + scheme);
         };
 
@@ -204,51 +193,6 @@ public class DiagramController {
         return "@startuml\n@enduml";
     }
 
-    private String getGitSourceDocument(URI srcUri) {
-        String gitUri = repoUri(srcUri);
-        String branch = branch(srcUri, "main");
-        try (
-            CloseableTempDir tempDir = new CloseableTempDir("plantuml-git-");
-            Git git = Git.cloneRepository().setURI(gitUri).setBare(false).setBranch(branch).setCloneAllBranches(false).setDirectory(tempDir.getFile()).call()
-        ) {
-            String gitFile = srcUri.getFragment();
-            Path gitPath = tempDir.getPath().resolve(gitFile);
-            try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-                Files.copy(gitPath, baos);
-                return baos.toString();
-            }
-        } catch (IOException | GitAPIException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private static String repoUri(URI srcUri) {
-        try {
-            String scheme = switch (srcUri.getScheme()) {
-                case "git+ssh" -> "ssh";
-                default -> srcUri.getScheme();
-            };
-            return new URI(scheme, srcUri.getUserInfo(), srcUri.getHost(), srcUri.getPort(), srcUri.getPath(), null, null).toString();
-        } catch (URISyntaxException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    /**
-     * Extract the branch name from the query string parameter 'branch' or return the default branch name.
-     */
-    private static String branch(URI srcUri, String defaultBranch) {
-        return Optional.ofNullable(srcUri.getQuery())
-            .map(query -> query.split("&"))
-            .flatMap(queries -> Stream.of(queries)
-                .map(query -> query.split("="))
-                .filter(query -> query.length == 2 && "branch".equals(query[0]))
-                .map(query -> query[1])
-                .findFirst()
-            )
-            .orElse(defaultBranch);
-    }
-
     private String getHttpSourceDocument(URL srcUrl) {
         HttpClient.Builder clientBuilder = HttpClient.newBuilder()
             .followRedirects(HttpClient.Redirect.NORMAL);
@@ -267,8 +211,7 @@ public class DiagramController {
 
     private Optional<String> getHttpAuthenticator(URL srcUrl) {
         String authKey = getAuthKey(srcUrl);
-        return Optional.ofNullable(config.getHttpAuth())
-            .flatMap(auth -> Optional.ofNullable(auth.get(authKey)))
+        return Optional.ofNullable(config.get(authKey))
             .map(auth -> "Basic " + Base64.getEncoder().encodeToString((auth.getUsername() + ":" + auth.getPassword()).getBytes()));
     }
 
@@ -370,142 +313,5 @@ public class DiagramController {
         headers.add("X-Powered-By", POWERED_BY);
         headers.add("X-Patreon", "Support us on http://plantuml.com/patreon");
         headers.add("X-Donate", "http://plantuml.com/paypal");
-    }
-
-    /**
-     * A {@link JschConfigSessionFactory} that uses a {@link Map} to store the ssh key.
-     */
-    private static class MemoryJschConfigSessionFactory extends JschConfigSessionFactory {
-
-        private final Map<String, GitAuthConfig> authConfigMap;
-
-        private MemoryJschConfigSessionFactory(Map<String, GitAuthConfig> authConfigMap) {
-            this.authConfigMap = authConfigMap;
-        }
-
-        @Override
-        public synchronized RemoteSession getSession(URIish uri, CredentialsProvider credentialsProvider, FS fs, int tms) throws TransportException {
-            return Optional.ofNullable(authConfigMap.get(uri.toString()))
-//                .map(PlantumlConfigProperties.GitAuthConfig::getSshKey)
-                .flatMap(gitAuth -> createJsch(uri, gitAuth))
-                .map(jsch -> {
-                    try {
-                        int port = uri.getPort();
-                        if (port <= 0) {
-                            port = 22;
-                        }
-                        Session session = jsch.getSession(uri.getUser(), uri.getHost(), port);
-                        session.setConfig("PreferredAuthentications", "publickey");
-                        session.setConfig("StrictHostKeyChecking", "no");
-                        session.connect();
-                        return session;
-                    } catch (JSchException e) {
-                        log.error("Failed to create session", e);
-                        return null;
-                    }
-                })
-                .map(s -> new JschSession(s,uri))
-                .orElseThrow();
-        }
-
-        private Optional<JSch> createJsch(URIish requestUri, GitAuthConfig authConfig) {
-            try {
-                String identity = new URI(requestUri.getScheme(), requestUri.getUser(), requestUri.getHost(), requestUri.getPort(), null, null, null).toString();
-                JSch jsch = new JSch();
-                jsch.addIdentity(
-                    identity,
-                    gitConfig(authConfig, GitAuthConfig::getPrivateKey),
-                    gitConfig(authConfig, GitAuthConfig::getPublicKey),
-                    gitConfig(authConfig, GitAuthConfig::getPassPhrase));
-                return Optional.of(jsch);
-            } catch (JSchException | URISyntaxException e) {
-                log.error("Failed to add identity", e);
-                return Optional.empty();
-            }
-        }
-
-        private byte[] gitConfig(GitAuthConfig authConfig, Function<GitAuthConfig, String> parameterFunction) {
-            return Optional.ofNullable(authConfig)
-                .map(parameterFunction)
-                .map(String::getBytes)
-                .orElse(null);
-        }
-
-        @Override
-        public String getType() {
-            return super.getType();
-        }
-
-        @Override
-        protected Session createSession(OpenSshConfig.Host hc, String user, String host, int port, FS fs) throws JSchException {
-            return super.createSession(hc, user, host, port, fs);
-        }
-
-        @Override
-        protected void configureJSch(JSch jsch) {
-            super.configureJSch(jsch);
-        }
-
-        @Override
-        protected JSch getJSch(OpenSshConfig.Host hc, FS fs) throws JSchException {
-            return super.getJSch(hc, fs);
-        }
-
-        @Override
-        protected JSch createDefaultJSch(FS fs) throws JSchException {
-            return super.createDefaultJSch(fs);
-        }
-
-        @Override
-        public void releaseSession(RemoteSession session) {
-            super.releaseSession(session);
-        }
-
-        @Override
-        protected void configure(OpenSshConfig.Host hc, Session session) {
-            super.configure(hc, session);
-        }
-    }
-
-    private static class CloseableTempDir implements AutoCloseable {
-
-        private final Path tempDir;
-
-        private CloseableTempDir(String prefix) {
-            try {
-                this.tempDir = Files.createTempDirectory(prefix);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        private Path getPath() {
-            return tempDir;
-        }
-
-        private File getFile() {
-            return tempDir.toFile();
-        }
-
-        @Override
-        public void close() {
-            deleteTempDir(tempDir);
-        }
-
-        private static void deleteTempDir(Path tempDir) {
-
-            if (tempDir == null || !Files.exists(tempDir)) {
-                return;
-            }
-            try ( Stream<Path> walkStream = Files.walk(tempDir)) {
-                walkStream
-                    .sorted(Comparator.reverseOrder())
-                    .map(Path::toFile)
-                    .forEach(File::delete);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
     }
 }
