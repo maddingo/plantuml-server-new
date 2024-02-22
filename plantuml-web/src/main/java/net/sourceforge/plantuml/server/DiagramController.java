@@ -36,6 +36,8 @@ import net.sourceforge.plantuml.error.PSystemError;
 import net.sourceforge.plantuml.syntax.LanguageDescriptor;
 import net.sourceforge.plantuml.version.Version;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.cloud.context.config.annotation.RefreshScope;
+import org.springframework.cloud.context.refresh.ContextRefresher;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -55,6 +57,8 @@ import java.net.http.HttpResponse;
 import java.util.Base64;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 
@@ -63,6 +67,7 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @Controller
+@RefreshScope
 public class DiagramController {
 
     private static final String POWERED_BY = "PlantUML Version " + Version.versionString();
