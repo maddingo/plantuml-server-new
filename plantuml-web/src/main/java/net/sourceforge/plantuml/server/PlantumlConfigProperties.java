@@ -8,19 +8,12 @@ import java.util.Map;
 @ConfigurationProperties(prefix = "plantuml")
 @Data
 public class PlantumlConfigProperties {
-    Map<String, HttpAuthConfig> httpAuth;
-    Map<String, GitAuthConfig> gitAuth;
+    Map<String, HttpAuthConfig> http;
 
     @Data
     public static class HttpAuthConfig {
+        String url;
         String username;
         String password;
-    }
-
-    @Data
-    public static class GitAuthConfig {
-        String privateKey;
-        String publicKey;
-        String passPhrase;
     }
 }
