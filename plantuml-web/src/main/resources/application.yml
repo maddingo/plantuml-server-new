@@ -4,8 +4,8 @@ spring:
     enabled: false
 
 plantuml:
-#  http:
-#    localhost:
-#      url: 'http://localhost:8080'
-#      username: 'user'
-#      password: 'secret'
+  http:
+    localhost:
+      url: 'http://localhost:8080'
+      username: 'user'
+      password: 'secret'
