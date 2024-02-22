@@ -49,6 +49,10 @@
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
@@ -82,7 +86,7 @@
                     <execution>
                         <id>spring-boot-package</id>
                         <phase>package</phase>
-                        <goals><goal>repackage</goal></goals>
+                        <goals><goal>repackage</goal><goal>build-info</goal></goals>
                     </execution>
                 </executions>
             </plugin>
